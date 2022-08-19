@@ -1,0 +1,141 @@
+Option Explicit
+
+Sub Planning()
+        
+    Dim lastRow As Long
+    Dim lastColumn As Long
+    Dim FgCell As Variant
+    Dim FgStock As Long
+    Dim FgDemand As Long
+    Dim FgTervben As Long
+    Dim MaterialStock As Long ' PH stock
+    Dim materialType As String
+    Dim r As Long
+    Dim ModifyCellColor As Range
+    
+    Dim dictFgStock As Scripting.Dictionary
+    Dim dictFgInProduction As Scripting.Dictionary
+    Dim dictMaterialStock As Scripting.Dictionary
+    Dim dictMaterialType As Scripting.Dictionary
+    Dim dictPhToFG As Scripting.Dictionary
+    Dim dictPhToMaterialstock As Scripting.Dictionary
+    
+    lastRow = Sheet10.Range("A1").End(xlDown).row
+    lastColumn = Sheet10.Range("A1").End(xlToRight).column
+        
+    Set dictFgStock = New Scripting.Dictionary
+    Set dictFgInProduction = New Scripting.Dictionary
+    Set dictMaterialStock = New Scripting.Dictionary
+    Set dictMaterialType = New Scripting.Dictionary
+    Set dictPhToFG = New Scripting.Dictionary
+    Set dictPhToMaterialstock = New Scripting.Dictionary
+  
+    
+    For r = 2 To lastRow Step 1
+    
+        FgCell = Sheet10.Cells(r, 4)
+        FgStock = Sheet10.Cells(r, 10) + Sheet10.Cells(r, 11)
+        FgTervben = Sheet10.Cells(r, 17)
+        MaterialStock = Sheet10.Cells(r, 13)
+        materialType = Sheet10.Cells(r, 12)
+        
+        If dictFgStock.Exists(FgCell) Then
+        Else
+            dictFgStock.Add FgCell, FgStock
+        End If
+        
+        If dictFgInProduction.Exists(FgCell) Then
+        Else
+            dictFgInProduction.Add FgCell, FgTervben
+        End If
+        
+        If dictMaterialStock.Exists(FgCell) Then
+        Else
+            dictMaterialStock.Add FgCell, MaterialStock
+        End If
+        
+        If dictMaterialType.Exists(FgCell) Then
+        Else
+            dictMaterialType.Add FgCell, materialType
+        End If
+        
+        'Relation by material: Material -> FG + Material + MaterialStock
+        If dictPhToFG.Exists(materialType) Then
+        Else
+            dictPhToFG.Add materialType, FgCell
+        End If
+        
+        If dictPhToMaterialstock.Exists(materialType) Then
+        Else
+            dictPhToMaterialstock.Add materialType, MaterialStock
+        End If
+        
+    Next r
+    
+    For r = 2 To lastRow Step 1
+    
+        FgCell = Sheet10.Cells(r, 4)
+        FgDemand = Sheet10.Cells(r, 7)
+        FgTervben = Sheet10.Cells(r, 17)
+        MaterialStock = Sheet10.Cells(r, 13)
+        materialType = Sheet10.Cells(r, 12)
+        
+        Set ModifyCellColor = Sheet10.Range("A" & r, "U" & r)
+        
+        ' Finished good stock evaluation
+        If FgDemand <= dictFgStock.Item(FgCell) Then
+            ' If finishedgood is on stock, then highlight current row with green and decrease stock with the demand of current row.
+            
+            Debug.Print FgCell & " demand: " & FgDemand & "| FG stock: " & dictFgStock.Item(FgCell) & " | & ph " & dictMaterialType.Item(FgCell) & " stock: " & dictPhToMaterialstock.Item(dictMaterialType.Item(FgCell)) _
+            & "| openjob: " & dictFgInProduction.Item(FgCell) & " ==> Stock covers the demand! "
+
+            dictFgStock.Item(FgCell) = dictFgStock.Item(FgCell) - FgDemand
+            ModifyCellColor.Interior.Color = vbGreen
+            
+            
+        ElseIf FgDemand <= dictFgStock.Item(FgCell) + dictFgInProduction.Item(FgCell) Then
+            ' If finishedgood is not on stock but it is in production,
+            'then highlight row with yellowm reduce FG stock to 0 and decrease job row with the demand of current row
+            
+         Debug.Print FgCell & " demand: " & FgDemand & "| FG stock: " & dictFgStock.Item(FgCell) & " | & ph " & dictMaterialType.Item(FgCell) & " stock: " & dictPhToMaterialstock.Item(dictMaterialType.Item(FgCell)) _
+            & "| openjob: " & dictFgInProduction.Item(FgCell) & " ==> Stock + openjob covers the demand! "
+            
+            dictFgStock.Item(FgCell) = 0
+            dictFgInProduction(FgCell) = dictFgInProduction(FgCell) - FgDemand
+            ModifyCellColor.Interior.Color = vbYellow
+            
+        ElseIf FgDemand <= dictFgStock.Item(FgCell) + dictFgInProduction.Item(FgCell) + dictPhToMaterialstock.Item(dictMaterialType.Item(FgCell)) Then
+            'If FG is not on stock, neither in production, but material is avialable then highlight current row with blue, set both FG stock and open job to 0 and decrease
+            'rawMaterial stock from by demand of current row
+            
+           Debug.Print FgCell & " demand: " & FgDemand & "| FG stock: " & dictFgStock.Item(FgCell) & " | & ph " & dictMaterialType.Item(FgCell) & " stock: " & dictPhToMaterialstock.Item(dictMaterialType.Item(FgCell)) _
+            & "| openjob: " & dictFgInProduction.Item(FgCell) & " ==> There is material for job creation! "
+
+            dictFgStock.Item(FgCell) = 0
+            dictFgInProduction(FgCell) = 0
+            ModifyCellColor.Interior.Color = vbCyan
+            
+            ' reduce Ph stock for other Parts as well
+            Dim myKey As Variant
+            For Each myKey In dictPhToFG.Keys
+                If myKey = dictMaterialType.Item(FgCell) Then
+                    'Stop
+                    'Debug.Print myKey, dictMaterialType.Item(FgCell), dictMaterialStock(FgCell)
+                    dictPhToMaterialstock.Item(dictMaterialType.Item(FgCell)) = dictPhToMaterialstock.Item(dictMaterialType.Item(FgCell)) - FgDemand
+                    'Debug.Print myKey, dictMaterialType.Item(FgCell), dictMaterialStock(FgCell)
+                End If
+            Next myKey
+            
+        Else
+            ' If there is no FG stock, no open production order and not enough material then Highlight with red.
+            
+             Debug.Print FgCell & " demand: " & FgDemand & "| FG stock: " & dictFgStock.Item(FgCell) & " | & ph " & dictMaterialType.Item(FgCell) & " stock: " & dictPhToMaterialstock.Item(dictMaterialType.Item(FgCell)) _
+            & "| openjob: " & dictFgInProduction.Item(FgCell) & " ==> There is no material for job creation! "
+
+            ModifyCellColor.Interior.Color = vbRed
+            
+        End If
+        
+    Next r
+    
+End Sub
