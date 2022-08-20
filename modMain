@@ -87,7 +87,7 @@ Sub Planning()
             ' If finishedgood is on stock, then highlight current row with green and decrease stock with the demand of current row.
             
             Debug.Print FgCell & " demand: " & FgDemand & "| FG stock: " & dictFgStock.Item(FgCell) & " | & ph " & dictMaterialType.Item(FgCell) & " stock: " & dictPhToMaterialstock.Item(dictMaterialType.Item(FgCell)) _
-            & "| openjob: " & dictFgInProduction.Item(FgCell) & " ==> Stock covers the demand! "
+            & "| openjob: " & dictFgInProduction.Item(FgCell) & " ==> Stock covers the demand! ==> Green"
 
             dictFgStock.Item(FgCell) = dictFgStock.Item(FgCell) - FgDemand
             ModifyCellColor.Interior.Color = vbGreen
@@ -98,7 +98,7 @@ Sub Planning()
             'then highlight row with yellowm reduce FG stock to 0 and decrease job row with the demand of current row
             
          Debug.Print FgCell & " demand: " & FgDemand & "| FG stock: " & dictFgStock.Item(FgCell) & " | & ph " & dictMaterialType.Item(FgCell) & " stock: " & dictPhToMaterialstock.Item(dictMaterialType.Item(FgCell)) _
-            & "| openjob: " & dictFgInProduction.Item(FgCell) & " ==> Stock + openjob covers the demand! "
+            & "| openjob: " & dictFgInProduction.Item(FgCell) & " ==> Stock + openjob covers the demand! ==> Yellow "
             
             dictFgStock.Item(FgCell) = 0
             dictFgInProduction(FgCell) = dictFgInProduction(FgCell) - FgDemand
@@ -109,7 +109,7 @@ Sub Planning()
             'rawMaterial stock from by demand of current row
             
            Debug.Print FgCell & " demand: " & FgDemand & "| FG stock: " & dictFgStock.Item(FgCell) & " | & ph " & dictMaterialType.Item(FgCell) & " stock: " & dictPhToMaterialstock.Item(dictMaterialType.Item(FgCell)) _
-            & "| openjob: " & dictFgInProduction.Item(FgCell) & " ==> There is material for job creation! "
+            & "| openjob: " & dictFgInProduction.Item(FgCell) & " ==> There is material for job creation! ==> Blue "
 
             dictFgStock.Item(FgCell) = 0
             dictFgInProduction(FgCell) = 0
@@ -130,7 +130,7 @@ Sub Planning()
             ' If there is no FG stock, no open production order and not enough material then Highlight with red.
             
              Debug.Print FgCell & " demand: " & FgDemand & "| FG stock: " & dictFgStock.Item(FgCell) & " | & ph " & dictMaterialType.Item(FgCell) & " stock: " & dictPhToMaterialstock.Item(dictMaterialType.Item(FgCell)) _
-            & "| openjob: " & dictFgInProduction.Item(FgCell) & " ==> There is no material for job creation! "
+            & "| openjob: " & dictFgInProduction.Item(FgCell) & " ==> There is no material for job creation! ==> Red "
 
             ModifyCellColor.Interior.Color = vbRed
             
